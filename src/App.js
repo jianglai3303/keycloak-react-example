@@ -15,7 +15,7 @@ import Keycloak from 'keycloak-js';
 let initOptions = {
   url: 'http://localhost:8080/',
   realm: 'master',
-  clientId: 'react-client',
+  clientId: 'react-app',
 }
 
 let kc = new Keycloak(initOptions);
