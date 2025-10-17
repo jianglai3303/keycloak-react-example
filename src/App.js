@@ -1,61 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 import "primereact/resources/primereact.min.css";
 import '/node_modules/primeflex/primeflex.css'
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
-import { httpClient } from './HttpClient';
+import { kc } from './keycloak';
+import EmbeddedDashboard from './EmbeddedDashboard';
 
-import Keycloak from 'keycloak-js';
-
-/*
-  Init Options
-*/
-let initOptions = {
-  url: 'http://localhost:8080/',
-  realm: 'master',
-  clientId: 'react-app',
-}
-
-let kc = new Keycloak(initOptions);
-
-kc.init({
-  onLoad: 'login-required', // Supported values: 'check-sso' , 'login-required'
-  checkLoginIframe: true,
-  pkceMethod: 'S256'
-}).then((auth) => {
-  if (!auth) {
-    window.location.reload();
-  } else {
-    /* Remove below logs if you are using this on production */
-    console.info("Authenticated");
-    console.log('auth', auth)
-    console.log('Keycloak', kc)
-    console.log('Access Token', kc.token)
-
-    /* http client will use this header in every request it sends */
-    httpClient.defaults.headers.common['Authorization'] = `Bearer ${kc.token}`;
-
-    kc.onTokenExpired = () => {
-      console.log('token expired')
-    }
-  }
-}, () => {
-  /* Notify the user if necessary */
-  console.error("Authentication Failed");
-});
 
 function App() {
 
   const [infoMessage, setInfoMessage] = useState('');
-
-  /* To demonstrate : http client adds the access token to the Authorization header */
-  const callBackend = () => {
-    httpClient.get('https://mockbin.com/request')
-
-  };
-
+  const [loading, setLoading] = useState(true);
+  setInterval(() => {
+    if (kc.authenticated) {
+      setLoading(false)
+    }
+  }, 2000);
   return (
     <div className="App">
       <div className='grid'>
@@ -63,11 +25,11 @@ function App() {
           <h1>My Secured React App</h1>
         </div>
       </div>
-      <div className="grid">
-
+      <div>
+        {loading ? <div>Loading...</div> : <EmbeddedDashboard />}
       </div>
 
-      <div className='grid'>
+      <div className='grid' style={{display: 'none'}}>
         <div className='col-1'></div>
         <div className='col-2'>
           <div className="col">
@@ -98,11 +60,6 @@ function App() {
             <Button onClick={() => { kc.updateToken(10).then((refreshed) => { setInfoMessage('Token Refreshed: ' + refreshed.toString()) }, (e) => { setInfoMessage('Refresh Error') }) }}
               className="m-1 custom-btn-style"
               label='Update Token (if about to expire)' />  {/** 10 seconds */}
-
-            <Button onClick={callBackend}
-              className='m-1 custom-btn-style'
-              label='Send HTTP Request'
-              severity="success" />
 
             <Button onClick={() => { kc.logout({ redirectUri: 'http://localhost:3000/' }) }}
               className="m-1 custom-btn-style"
@@ -138,6 +95,5 @@ function App() {
     </div>
   );
 }
-
 
 export default App;
